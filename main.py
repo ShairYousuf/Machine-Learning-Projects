@@ -35,11 +35,11 @@ def plot_predictions(train_data=X_train,
     plt.legend(prop = {'size': 14})
     plt.show()
 
-plot_predictions()
+#plot_predictions()
 
 #create linear regression model class
 
-class LinearRegression(nn.Module):
+class LinearRegressionModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.weights = nn.Parameter(torch.randn(1,
@@ -52,3 +52,9 @@ class LinearRegression(nn.Module):
         #forward method to define the computation in the model
     def forward(self, x:torch.Tensor)->torch.Tensor:
         return self.weights * x + self.bias
+    
+torch.manual_seed(42)
+model_0 = LinearRegressionModel()
+
+print(list(model_0.parameters()))
+print(model_0.state_dict())
