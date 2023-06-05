@@ -22,20 +22,16 @@ Y_train = y[:train_split]
 X_test = X[train_split:]
 y_test = y[train_split:]
 
-def plot_predictions(train_data=X_train, 
-                     train_labels=Y_train, 
-                     test_data=X_test, 
-                     test_labels=y_test, 
-                     predictions=None):
+def plot_predictions(train_data=X_train, train_labels=Y_train, test_data=X_test, test_labels=y_test, predictions=None):
     plt.figure(figsize=(10, 7))
-    plt.scatter(train_data, train_labels, c='b', label='Training data')
-    plt.scatter(test_data, test_labels, c='g', label='Testing data')
+    plt.scatter(train_data.squeeze(), train_labels.squeeze(), c='b', label='Training data')
+    plt.scatter(test_data.squeeze(), test_labels.squeeze(), c='g', label='Testing data')
     if predictions is not None:
-        plt.scatter(train_data, predictions, c='r', label='Predictions')
-    plt.legend(prop = {'size': 14})
+        plt.scatter(test_data.squeeze(), predictions.squeeze(), c='r', label='Predictions')
+    plt.legend(prop={'size': 14})
     plt.show()
 
-#plot_predictions()
+
 
 #create linear regression model class
 
@@ -56,5 +52,38 @@ class LinearRegressionModel(nn.Module):
 torch.manual_seed(42)
 model_0 = LinearRegressionModel()
 
-print(list(model_0.parameters()))
-print(model_0.state_dict())
+#Make prediction with  model
+with torch.inference_mode():
+    y_preds = model_0(X_test)
+
+loss_fn = nn.L1Loss()
+
+optimizer = torch.optim.SGD(model_0.parameters(), lr=0.01)
+
+torch.manual_seed(42)
+
+#Time we loop through data
+epochs = 500
+
+for epoch in range(epochs):
+    model_0.train()
+
+    y_pred = model_0(X_train)
+
+    loss = loss_fn(y_pred, Y_train)
+
+    optimizer.zero_grad()
+
+    loss.backward()
+
+    optimizer.step()
+
+    model_0.eval()
+
+    print(loss)
+    print(model_0.state_dict())
+
+with torch.inference_mode():
+    y_preds_new = model_0(X_test)
+
+plot_predictions(predictions=y_preds_new)
