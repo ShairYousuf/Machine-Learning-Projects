@@ -185,5 +185,28 @@ model_1.eval()
 with torch.inference_mode():
     y_preds = model_1(X_test)
 
-print(y_preds)
-plot_predictions(predictions=y_preds.cpu())
+# print(y_preds)
+# plot_predictions(predictions=y_preds.cpu())
+
+from pathlib import Path
+
+MODEL_PATH = Path('models')
+MODEL_PATH.mkdir(parents=True, exist_ok=True)
+
+MODEL_NAME  = 'linear_regression_model_v2.pth'
+MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
+
+torch.save(obj=model_1.state_dict(), f=MODEL_SAVE_PATH)
+
+loader_model_1 = LinearRegressionModelV2()
+
+loader_model_1.load_state_dict(torch.load(MODEL_SAVE_PATH))
+
+loader_model_1.to(device)
+
+loader_model_1.eval()
+
+with torch.inference_mode():
+    loader_model_1_preds = loader_model_1(X_test)
+
+print(loader_model_1_preds==y_preds)
