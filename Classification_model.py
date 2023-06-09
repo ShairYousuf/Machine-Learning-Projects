@@ -28,9 +28,57 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 class CircleModelV0(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layer_1 = nn.Linear(in_features=2, out_features=8)
-        self.layer_2 = nn.Linear(in_features=8, out_features=1)
+        self.layer_1 = nn.Linear(in_features=2, out_features=5)
+        self.layer_2 = nn.Linear(in_features=5, out_features=1)
         
     def forward(self, x):
         return self.layer_2(self.layer_1(x))
 
+model_0 = CircleModelV0().to(device)
+
+model_0_seq = nn.Sequential(nn.Linear(in_features=2, out_features=5),
+                            nn.Linear(in_features=5, out_features=1)).to(device)
+
+loss_fn = nn.BCEWithLogitsLoss()
+optimizer = torch.optim.SGD(params=model_0.parameters(), lr=0.1)
+
+def accuracy_fn(y_true, y_pred):
+    correct = torch.eq(y_true, y_pred).sum().item()
+    acc = (correct / len(y_pred)) * 100
+    return acc
+
+
+torch.cuda.manual_seed(42)
+
+epochs = 100
+
+X_train = X_train.to(device)
+y_train = y_train.to(device)
+X_test = X_test.to(device)
+y_test = y_test.to(device)
+
+for epoch in range(epochs):
+    model_0.train()
+
+    y_logits = model_0(X_train).squeeze()
+    y_pred = torch.round(torch.sigmoid(y_logits))
+
+    loss = loss_fn(y_logits, y_train)
+
+    acc = accuracy_fn(y_train, y_pred)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    model_0.eval()
+    with torch.inference_mode():
+        test_logits = model_0(X_test).squeeze()
+        test_pred = torch.round(torch.sigmoid(test_logits))
+
+        test_loss = loss_fn(test_logits, y_test)
+        test_acc = accuracy_fn(y_test, test_pred)
+
+    
+    if epoch % 10 == 0:
+        print(f"Epoch: {epoch} | Train Loss: {loss:.5f} | Train Acc: {acc:.2f} | Test Loss: {test_loss:.5f} | Test Acc: {test_acc:.2f}")
