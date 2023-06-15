@@ -11,3 +11,41 @@ import numpy as np
 
 import os
 
+from torch.utils.data import DataLoader
+
+train_data = datasets.FashionMNIST(
+    root="data",
+    train=True,
+    download=True,
+    transform=ToTensor(),
+    target_transform=None
+)
+
+test_data = datasets.FashionMNIST(
+    root="data",
+    train=False,
+    download=True,
+    transform=ToTensor(),
+    target_transform=None
+)
+
+class_names =  train_data.classes
+
+BATCH_SIZE = 32
+
+train_dataloader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
+
+test_dataloader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
+
+
+train_features_batch, train_labels_batch = next(iter(train_dataloader))
+
+torch.manual_seed(42)
+
+random_idx = np.random.randint(0, len(train_features_batch), size=[1]).item()
+img,label = train_features_batch[random_idx], train_labels_batch[random_idx]
+plt.imshow(img.squeeze(), cmap="gray")
+plt.title(class_names[label])
+plt.axis(False)
+plt.show()
+
