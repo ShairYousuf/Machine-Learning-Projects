@@ -234,9 +234,105 @@ for sample,label in random.sample(list(test_data), k=9):
     test_samples.append(sample)
     test_labels.append(label)
 
-plt.imshow(test_samples[0].squeeze(), cmap="gray")
-plt.title(class_names[test_labels[0]])
-plt.show()
+# plt.imshow(test_samples[0].squeeze(), cmap="gray")
+# plt.title(class_names[test_labels[0]])
+# plt.show()
 
 pred_probs = make_predictions(model_2, test_samples)
 pred_classes = torch.argmax(pred_probs, dim=1)
+
+plt.figure(figsize=(9,9))
+nrows, ncols = 3,3
+for i, sample in enumerate(test_samples):
+    plt.subplot(nrows, ncols, i+1)
+    plt.imshow(sample.squeeze(), cmap="gray")
+    pred_label = class_names[pred_classes[i]]
+    truth_label = class_names[test_labels[i]]
+    title_text = f"Pred: {pred_label} | Truth: {truth_label}"
+
+    if pred_label == truth_label:
+        plt.title(title_text, color="g", fontsize=10)
+    else:
+        plt.title(title_text, color="r", fontsize=10)
+
+    plt.axis(False)
+# plt.show()
+
+from tqdm.auto import tqdm
+y_preds = []
+model_2.eval()
+with torch.inference_mode():
+    for X, Y in tqdm(test_dataloader, desc="Making Predictions..."):
+        X = X.to(device)
+        Y = Y.to(device)
+        y_logit = model_2(X)
+        y_pred = torch.softmax(y_logit.squeeze()
+                               , dim=1).argmax(dim=1)
+        y_preds.extend(pred_probs.cpu())
+
+y_pred_tensor = torch.cat(y_preds)
+
+import mlxtend
+print(f"MLXTEND Version: {mlxtend.__version__}")
+
+from mlxtend.plotting import plot_confusion_matrix
+from torchmetrics import ConfusionMatrix
+
+confmat = ConfusionMatrix(num_classes=len(class_names), task='multiclass')
+confmat_tensor = confmat(preds=y_pred_tensor,
+                         target=test_data.targets)
+
+fig, ax =plot_confusion_matrix(conf_mat=confmat_tensor.numpy(), class_names=class_names, figsize=(10,7))
+
+def eval_model(model:torch.nn.Module,
+               data_loader: torch.utils.data.DataLoader,
+               loss_fn: torch.nn.Module,
+               accuracy_fn,
+               device):
+    loss,acc=0,0
+    model.eval()
+    with torch.inference_mode():
+        for X, y in tqdm(data_loader) :
+
+            X, y = X.to(device), y.to(device)
+            y_pred = model(X)
+
+            loss += loss_fn(y_pred, y)
+            acc += accuracy_fn(y_true=y, y_pred=y_pred.argmax(dim=1))
+
+        loss /= len(data_loader)
+        acc /= len(data_loader)
+    return {"model_name": model.__class__.__name__,
+            "model_loss": loss.item(),
+            "model_acc": acc}
+
+
+from pathlib import Path
+
+MODEL_PATH = Path("models")
+MODEL_PATH.mkdir(exist_ok=True, parents=True)
+
+MODEL_NAME = "fashion_mnist_cnn_v2.pt"
+MODEL_SAVE_PATH = MODEL_PATH/MODEL_NAME
+torch.save(model_2.state_dict(), MODEL_SAVE_PATH)
+
+torch.manual_seed(42)
+loaded_model_2 = FashionMNISTModeV2(input_shape=1, hidden_units=10, output_shape=len(class_names))
+
+loaded_model_2.load_state_dict(torch.load(MODEL_SAVE_PATH))
+
+loaded_model_2_results = eval_model(
+    model=loaded_model_2,
+    data_dataloader=test_dataloader,
+    loss_fn=loss_fn,
+    accuracy_fn=accuracy_fn,
+)
+model_2_results = eval_model(  
+    model=model_2,
+    data_dataloader=test_dataloader,
+    loss_fn=loss_fn,
+    accuracy_fn=accuracy_fn,
+)
+
+print(model_2_results)
+print(loaded_model_2_results)
