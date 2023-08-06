@@ -44,10 +44,10 @@ torch.manual_seed(42)
 
 random_idx = np.random.randint(0, len(train_features_batch), size=[1]).item()
 img,label = train_features_batch[random_idx], train_labels_batch[random_idx]
-# plt.imshow(img.squeeze(), cmap="gray")
-# plt.title(class_names[label])
-# plt.axis(False)
-# plt.show()
+plt.imshow(img.squeeze(), cmap="gray")
+plt.title(class_names[label])
+plt.axis(False)
+plt.show()
 
 flatten_model = nn.Flatten()
 
@@ -60,8 +60,8 @@ class FashionMNISTModelV0(nn.Module):
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int):
         super().__init__()
         self.layer_stack = nn.Sequential(
-            nn.Flatten(), # neural networks like their inputs in vector form
-            nn.Linear(in_features=input_shape, out_features=hidden_units), # in_features = number of features in a data sample (784 pixels)
+            nn.Flatten(), 
+            nn.Linear(in_features=input_shape, out_features=hidden_units), 
             nn.Linear(in_features=hidden_units, out_features=output_shape)
         )
     
@@ -70,111 +70,30 @@ class FashionMNISTModelV0(nn.Module):
     
 torch.manual_seed(42)
 
-# Need to setup model with input parameters
-model_0 = FashionMNISTModelV0(input_shape=784, # one for every pixel (28x28)
-    hidden_units=10, # how many units in the hiden layer
-    output_shape=len(class_names) # one for every class
+model_0 = FashionMNISTModelV0(input_shape=784, 
+    hidden_units=10, 
+    output_shape=len(class_names) 
 )
-model_0.to("cpu") # keep model on CPU to begin with 
+model_0.to("cpu") 
 
 import requests
 from pathlib import Path
 
-# Import accuracy metric
-from helper_functions import accuracy_fn # Note: could also use torchmetrics.Accuracy(task = 'multiclass', num_classes=len(class_names)).to(device)
 
-# Setup loss function and optimizer
-loss_fn = nn.CrossEntropyLoss() # this is also called "criterion"/"cost function" in some places
+from helper_functions import accuracy_fn 
+
+
+loss_fn = nn.CrossEntropyLoss() 
 optimizer = torch.optim.SGD(params=model_0.parameters(), lr=0.1)
 
 from timeit import default_timer as timer 
 def print_train_time(start: float, end: float, device: torch.device = None):
-    """Prints difference between start and end time.
-
-    Args:
-        start (float): Start time of computation (preferred in timeit format). 
-        end (float): End time of computation.
-        device ([type], optional): Device that compute is running on. Defaults to None.
-
-    Returns:
-        float: time between start and end in seconds (higher is longer).
-    """
     total_time = end - start
     print(f"Train time on {device}: {total_time:.3f} seconds")
     return total_time
 
-# Import tqdm for progress bar
+
 from tqdm.auto import tqdm
-
-# Set the seed and start the timer
-# torch.manual_seed(42)
-# train_time_start_on_cpu = timer()
-
-# # Set the number of epochs (we'll keep this small for faster training times)
-# epochs = 3
-
-# # Create training and testing loop
-# for epoch in tqdm(range(epochs)):
-#     print(f"Epoch: {epoch}\n-------")
-#     ### Training
-#     train_loss = 0
-#     # Add a loop to loop through training batches
-#     for batch, (X, y) in enumerate(train_dataloader):
-#         model_0.train() 
-#         # 1. Forward pass
-#         y_pred = model_0(X)
-
-#         # 2. Calculate loss (per batch)
-#         loss = loss_fn(y_pred, y)
-#         train_loss += loss # accumulatively add up the loss per epoch 
-
-#         # 3. Optimizer zero grad
-#         optimizer.zero_grad()
-
-#         # 4. Loss backward
-#         loss.backward()
-
-#         # 5. Optimizer step
-#         optimizer.step()
-
-#         # Print out how many samples have been seen
-#         if batch % 400 == 0:
-#             print(f"Looked at {batch * len(X)}/{len(train_dataloader.dataset)} samples")
-
-#     # Divide total train loss by length of train dataloader (average loss per batch per epoch)
-#     train_loss /= len(train_dataloader)
-    
-#     ### Testing
-#     # Setup variables for accumulatively adding up loss and accuracy 
-#     test_loss, test_acc = 0, 0 
-#     model_0.eval()
-#     with torch.inference_mode():
-#         for X, y in test_dataloader:
-#             # 1. Forward pass
-#             test_pred = model_0(X)
-           
-#             # 2. Calculate loss (accumatively)
-#             test_loss += loss_fn(test_pred, y) # accumulatively add up the loss per epoch
-
-#             # 3. Calculate accuracy (preds need to be same as y_true)
-#             test_acc += accuracy_fn(y_true=y, y_pred=test_pred.argmax(dim=1))
-        
-#         # Calculations on test metrics need to happen inside torch.inference_mode()
-#         # Divide total test loss by length of test dataloader (per batch)
-#         test_loss /= len(test_dataloader)
-
-#         # Divide total accuracy by length of test dataloader (per batch)
-#         test_acc /= len(test_dataloader)
-
-#     ## Print out what's happening
-#     # print(f"\nTrain loss: {train_loss:.5f} | Test loss: {test_loss:.5f}, Test acc: {test_acc:.2f}%\n")
-
-# # Calculate training time      
-# train_time_end_on_cpu = timer()
-# total_train_time_model_0 = print_train_time(start=train_time_start_on_cpu, 
-#                                            end=train_time_end_on_cpu,
-#                                            device=str(next(model_0.parameters()).device))
-
 torch.manual_seed(42)
 def eval_model(model:torch.nn.Module,
                data_loader: torch.utils.data.DataLoader,
@@ -204,7 +123,7 @@ model_0_results = eval_model(model=model_0,
                              accuracy_fn=accuracy_fn,
                              device=str(next(model_0.parameters()).device))
 
-# print(model_0_results)
+print(model_0_results)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -212,8 +131,8 @@ class FashionMNISTModelV1(nn.Module):
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int):
         super().__init__()
         self.layer_stack = nn.Sequential(
-            nn.Flatten(), # neural networks like their inputs in vector form
-            nn.Linear(in_features=input_shape, out_features=hidden_units), # in_features = number of features in a data sample (784 pixels)
+            nn.Flatten(), 
+            nn.Linear(in_features=input_shape, out_features=hidden_units),
             nn.ReLU(),
             nn.Linear(in_features=hidden_units, out_features=output_shape),
             nn.ReLU()
@@ -240,24 +159,18 @@ def train_step(model:torch.nn.Module,
     
     train_loss, train_acc = 0,0
     model.train() 
-    # Add a loop to loop through training batches
     for batch, (X, y) in enumerate(data_loader):
         X, y = X.to(device), y.to(device)
-        # 1. Forward pass
         y_pred = model(X)
 
-        # 2. Calculate loss (per batch)
         loss = loss_fn(y_pred, y)
-        train_loss += loss # accumulatively add up the loss per epoch 
+        train_loss += loss 
         train_acc += accuracy_fn(y_true=y, y_pred=y_pred.argmax(dim=1))
 
-        # 3. Optimizer zero grad
         optimizer.zero_grad()
 
-        # 4. Loss backward
         loss.backward()
 
-        # 5. Optimizer step
         optimizer.step()
     
     train_loss /= len(data_loader)

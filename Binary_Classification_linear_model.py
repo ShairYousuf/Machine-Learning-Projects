@@ -30,7 +30,7 @@ def plot_predictions(train_data=X_train, train_labels=y_train, test_data=X_test,
     plt.show()
 
 
-#plot_predictions(X_train, y_train, X_test, y_test)
+plot_predictions(X_train, y_train, X_test, y_test)
 
 class LinearRegressionModelV2(nn.Module):
     def __init__(self):
@@ -44,7 +44,6 @@ class LinearRegressionModelV2(nn.Module):
     
 torch.manual_seed(42)
 model_1 = LinearRegressionModelV2()
-#print(model_1, model_1.state_dict())
 
 model_1.to(device)
 
@@ -53,7 +52,6 @@ loss_fn = nn.L1Loss()
 optimizer = torch.optim.SGD(params=model_1.parameters(), lr=0.01)
 
 epochs = 200
-#Video time 8 hrs 7 mins
 
 X_train = X_train.to(device)
 y_train = y_train.to(device)
@@ -71,17 +69,11 @@ for epochs in range(epochs):
     with torch.inference_mode():
         test_pred = model_1(X_test)
         test_loss = loss_fn(test_pred, y_test)
-    # if epochs % 10 == 0:
-    #     print(f"Epoch: {epochs}, Training loss: {loss}, Test loss: {test_loss}")
-    #     print(model_1.state_dict())
-
 model_1.eval()
 
 with torch.inference_mode():
     y_preds = model_1(X_test)
 
-# print(y_preds)
-# plot_predictions(predictions=y_preds.cpu())
 
 from pathlib import Path
 

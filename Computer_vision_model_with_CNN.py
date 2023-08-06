@@ -26,24 +26,21 @@ def train_step(model:torch.nn.Module,
     
     train_loss, train_acc = 0,0
     model.train() 
-    # Add a loop to loop through training batches
+
     for batch, (X, y) in enumerate(data_loader):
         X, y = X.to(device), y.to(device)
-        # 1. Forward pass
+
         y_pred = model(X)
 
-        # 2. Calculate loss (per batch)
         loss = loss_fn(y_pred, y)
-        train_loss += loss # accumulatively add up the loss per epoch 
+        train_loss += loss 
         train_acc += accuracy_fn(y_true=y, y_pred=y_pred.argmax(dim=1))
 
-        # 3. Optimizer zero grad
         optimizer.zero_grad()
 
-        # 4. Loss backward
+
         loss.backward()
 
-        # 5. Optimizer step
         optimizer.step()
     
     train_loss /= len(data_loader)
@@ -75,16 +72,6 @@ def test_step(model:torch.nn.Module,
     print(f"Test loss: {test_loss:.5f} | Test acc: {test_acc:.2f}%\n")
 
 def print_train_time(start: float, end: float, device: torch.device = None):
-    """Prints difference between start and end time.
-
-    Args:
-        start (float): Start time of computation (preferred in timeit format). 
-        end (float): End time of computation.
-        device ([type], optional): Device that compute is running on. Defaults to None.
-
-    Returns:
-        float: time between start and end in seconds (higher is longer).
-    """
     total_time = end - start
     print(f"Train time on {device}: {total_time:.3f} seconds")
     return total_time
@@ -101,8 +88,7 @@ test_data = datasets.FashionMNIST(
     root="data",
     train=False,
     download=True,
-    transform=ToTensor(),
-    target_transform=None
+    transform=ToTensor()
 )
 
 class_names =  train_data.classes
@@ -185,13 +171,8 @@ images = torch.rand(size=(32,3,64,64))
 test_image = images[0]
 
 conv_layer= nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(3,3), stride=1, padding=1)
-#conv_output = conv_layer(test_image.unsqueeze(0))
 
 max_pool_layer = nn.MaxPool2d(kernel_size=2)
-
-# test_image_through_conv = conv_layer(test_image.unsqueeze(dim=0))
-
-# test_image_through_conv_and_max_pool = max_pool_layer(test_image_through_conv)
 
 from helper_functions import accuracy_fn
 
@@ -239,7 +220,7 @@ for sample,label in random.sample(list(test_data), k=9):
 # plt.show()
 
 pred_probs = make_predictions(model_2, test_samples)
-pred_classes = torch.argmax(pred_probs, dim=1)
+pred_classes = pred_probs.argmax(dim=1)
 
 plt.figure(figsize=(9,9))
 nrows, ncols = 3,3
@@ -255,34 +236,37 @@ for i, sample in enumerate(test_samples):
     else:
         plt.title(title_text, color="r", fontsize=10)
 
-    plt.axis(False)
-# plt.show()
+plt.axis(False)
+plt.show()
 
 from tqdm.auto import tqdm
+
 y_preds = []
 model_2.eval()
 with torch.inference_mode():
-    for X, Y in tqdm(test_dataloader, desc="Making Predictions..."):
-        X = X.to(device)
-        Y = Y.to(device)
-        y_logit = model_2(X)
-        y_pred = torch.softmax(y_logit.squeeze()
-                               , dim=1).argmax(dim=1)
-        y_preds.extend(pred_probs.cpu())
-
+  for X, y in tqdm(test_dataloader, desc="Making predictions"):
+    X, y = X.to(device), y.to(device)
+    y_logit = model_2(X)
+    y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
+    y_preds.append(y_pred.cpu())
 y_pred_tensor = torch.cat(y_preds)
 
 import mlxtend
 print(f"MLXTEND Version: {mlxtend.__version__}")
 
-from mlxtend.plotting import plot_confusion_matrix
 from torchmetrics import ConfusionMatrix
+from mlxtend.plotting import plot_confusion_matrix
 
 confmat = ConfusionMatrix(num_classes=len(class_names), task='multiclass')
 confmat_tensor = confmat(preds=y_pred_tensor,
                          target=test_data.targets)
 
-fig, ax =plot_confusion_matrix(conf_mat=confmat_tensor.numpy(), class_names=class_names, figsize=(10,7))
+fig, ax = plot_confusion_matrix(
+    conf_mat=confmat_tensor.numpy(), 
+    class_names=class_names, 
+    figsize=(10, 7)
+)
+plt.show()
 
 def eval_model(model:torch.nn.Module,
                data_loader: torch.utils.data.DataLoader,
@@ -305,34 +289,3 @@ def eval_model(model:torch.nn.Module,
     return {"model_name": model.__class__.__name__,
             "model_loss": loss.item(),
             "model_acc": acc}
-
-
-from pathlib import Path
-
-MODEL_PATH = Path("models")
-MODEL_PATH.mkdir(exist_ok=True, parents=True)
-
-MODEL_NAME = "fashion_mnist_cnn_v2.pt"
-MODEL_SAVE_PATH = MODEL_PATH/MODEL_NAME
-torch.save(model_2.state_dict(), MODEL_SAVE_PATH)
-
-torch.manual_seed(42)
-loaded_model_2 = FashionMNISTModeV2(input_shape=1, hidden_units=10, output_shape=len(class_names))
-
-loaded_model_2.load_state_dict(torch.load(MODEL_SAVE_PATH))
-
-loaded_model_2_results = eval_model(
-    model=loaded_model_2,
-    data_dataloader=test_dataloader,
-    loss_fn=loss_fn,
-    accuracy_fn=accuracy_fn,
-)
-model_2_results = eval_model(  
-    model=model_2,
-    data_dataloader=test_dataloader,
-    loss_fn=loss_fn,
-    accuracy_fn=accuracy_fn,
-)
-
-print(model_2_results)
-print(loaded_model_2_results)

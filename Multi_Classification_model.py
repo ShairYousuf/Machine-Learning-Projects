@@ -28,9 +28,6 @@ X_blob_train, X_blob_test, y_blob_train, y_blob_test = train_test_split(X_blob, 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# plt.figure(figsize=(10,7))
-# plt.scatter(X_blob[:,0], X_blob[:,1], c=y_blob, cmap=plt.cm.RdYlBu)
-# plt.show()
 
 class BlobModel(nn.Module):
     def __init__(self, input_features, output_features, hidden_units=8):
